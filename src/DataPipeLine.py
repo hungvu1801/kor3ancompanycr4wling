@@ -1,10 +1,12 @@
 from src.Company import Company
 from dataclasses import fields, asdict
 import os, csv, time
+
 class DataPipeLine():
-    def __init__(self, csv_filename, storage_queue=20):
+    def __init__(self, csv_filename, storage_queue_limit=20):
         self.csv_filename = csv_filename
-        self.storage_queue = storage_queue
+        self.storage_queue_limit = storage_queue_limit
+        self.storage_queue = list()
         self.csv_file_open = False
 
 
@@ -47,6 +49,9 @@ class DataPipeLine():
             end_month_fy = scrape_data.get("end_month_fy"),
             url_ = scrape_data.get("url_"),
         )
+        self.storage_queue.append(company)
+        if len(self.storage_queue) >= self.storage_queue_limit:
+            self.save_to_csv()
 
     def close_pipeline(self) -> None:
         if self.csv_file_open:

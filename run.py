@@ -1,5 +1,5 @@
-from src import main
-import logging, sys
+from src.main import main
+import logging
 from datetime import datetime
 
 today = datetime.today().strftime('%y%m%d')
