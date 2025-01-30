@@ -25,7 +25,7 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
         pattern_page = r"/(\d+)"
 
         while True:
-            if idx_alphabet_elems > 2:
+            if idx_alphabet_elems > 27:
                 break
 
             func_call = f"searchIdx('{idx_alphabet_elems}'); return false;"
@@ -80,10 +80,11 @@ def detail() -> None:
 
 
 def main() -> None:
-    currpage = 0
-    idx_alphabet_elems = 1
-    if len(sys.argv) >= 2:
-        currpage = int(sys.argv[1])
-        idx_alphabet_elems = int(sys.argv[2])
-    card(currpage, idx_alphabet_elems)
+    idx_alphabet_elems = 0
+    currpage = 1
+    if len(sys.argv) == 2:
+        idx_alphabet_elems = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        currpage = int(sys.argv[2])
+    card(idx_alphabet_elems, currpage)
     # detail()
