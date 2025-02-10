@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 def card(idx_alphabet_elems=0, currpage=1) -> None:
+    # idx_alphabet_elems = 12
     try:
         url = "https://englishdart.fss.or.kr/dsbc001/main.do"
 
@@ -25,12 +26,16 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
         pattern_page = r"/(\d+)"
 
         while True:
-            if idx_alphabet_elems > 27:
+            if idx_alphabet_elems > 26:
                 break
 
             func_call = f"searchIdx('{idx_alphabet_elems}'); return false;"
             driver.execute_script(func_call)
+            time.sleep(1)
             logger.info(f"Current alphabet element index: {idx_alphabet_elems}")
+            func_call_pagination = f"search1({currpage}); return false;" # Call to next page
+            logger.info(f"Current page: {currpage}")
+            driver.execute_script(func_call_pagination)
             time.sleep(3)
             # page = 0 # This will mark the current page
             page_max_elem = driver.find_element(By.CSS_SELECTOR, "div.pageInfo").text
@@ -39,10 +44,11 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
                 page_max = int(page_max_match.group(1))
             logger.info(f"Page max of letter {idx_alphabet_elems} : {page_max}")
             while True:
-                logger.info(f"Current page: {currpage}")
+                time.sleep(2)
                 company_elems = driver.find_elements(By.XPATH, "//table[@id='corpTable']/tbody/tr")
 
                 for company_name in company_elems:
+                    logger.info("Find company... ")
                     click_elem = company_name.find_element(By.XPATH, ".//a")
                     click_elem.click()
                     time.sleep(1)
@@ -64,8 +70,9 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
                 if currpage >= page_max:
                     currpage = 1
                     break
-                func_call_pagination = f"search1({currpage + 1}); return false;" # Call to next page
                 currpage += 1
+                logger.info(f"Current page: {currpage}")
+                func_call_pagination = f"search1({currpage}); return false;" # Call to next page
                 driver.execute_script(func_call_pagination)
                 time.sleep(3)
             idx_alphabet_elems += 1
@@ -82,9 +89,11 @@ def detail() -> None:
 def main() -> None:
     idx_alphabet_elems = 0
     currpage = 1
-    if len(sys.argv) == 2:
+    if len(sys.argv) >= 2:
         idx_alphabet_elems = int(sys.argv[1])
+        print(idx_alphabet_elems)
     if len(sys.argv) > 2:
         currpage = int(sys.argv[2])
+        print(currpage)
     card(idx_alphabet_elems, currpage)
     # detail()
