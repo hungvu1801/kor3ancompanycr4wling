@@ -6,3 +6,5 @@ beautifulsoup4
 html2text
 selenium
 webdriver_manager
+jupyter
+dart-fss
