@@ -1,0 +1,19 @@
+searching_task:
+  description: >
+    Analyze {company_name_kor} ({company_name_eng}) in South Korea, focusing on future vision and financial status.  
+    Examine key financial metrics (P/E ratio, EPS growth, revenue trends, debt-to-equity ratio) and compare stock performance with industry peers.
+  expected_output: >
+    Provide a detailed assessment of the company's financial standing, strengths, weaknesses, and market position.  
+    Use the most recent data available.
+  # agent: searching_info_agent
+
+data_validation_task:
+  description: >
+    Summarize recent news, press releases, and market analyses on {company_name_kor} and its industry.  
+    Highlight major events, market sentiment, analyst opinions, and upcoming earnings.  
+    Ensure the data is clean, structured, and free from irrelevant information.
+  expected_output: >
+    A cleaned and structured dataset, ensuring data consistency and completeness, formatted as JSON.
+    {{company_name: {{company_name_kor}}, future_vision: {{future_vision}}, financial_status: {{financial_status}}}}
+  output_file: validated_company_data.json
+  # agent: data_processing_agent

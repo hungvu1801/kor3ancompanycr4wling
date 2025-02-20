@@ -4,3 +4,14 @@ __pycache__/*
 */__pycache__/*
 log/*
 Download/*
+data/*
+*/data/*
+.ipynb_checkpoints/*
+*.ipynb
+*/.ipynb_checkpoints/*
+*/*/__pycache__/*
+*.json
+*.txt
+*.bat
+*.sh
+db/*

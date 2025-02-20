@@ -2,7 +2,7 @@ from src.Company import Company
 from dataclasses import fields, asdict
 import os, csv, time
 
-class DataPipeLine():
+class DataPipeLineCSV():
     def __init__(self, csv_filename, storage_queue_limit=20):
         self.csv_filename = csv_filename
         self.storage_queue_limit = storage_queue_limit
