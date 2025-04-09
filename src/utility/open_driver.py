@@ -1,25 +1,28 @@
 import logging
+import random
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
-from src.assets import USER_AGENTS
-import random
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
+from src.assets import USER_AGENTS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def open_driver(headless=False):
+def open_driver(headless=False) -> webdriver.Chrome:
     """
-    Docstring:
-    
+    Docstring: This function creates a chrome driver.
+    return:
+        driver
     """
     options = Options()
-    user_agent = random.choice(USER_AGENTS[0])
+    user_agent = random.choice(USER_AGENTS)
 
     try:
         service = Service(ChromeDriverManager().install())

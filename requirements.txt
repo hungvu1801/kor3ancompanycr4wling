@@ -8,3 +8,6 @@ selenium
 webdriver_manager
 jupyter
 dart-fss
+crewai
+crewai_tools
+langchain_community

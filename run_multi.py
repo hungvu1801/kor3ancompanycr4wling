@@ -1,6 +1,6 @@
-from src.main import main
 import logging
 from datetime import datetime
+from src.main import main_multi
 
 today = datetime.today().strftime('%y%m%d')
 
@@ -10,4 +10,4 @@ logging.basicConfig(
 	format="%(asctime)s: %(levelname)s : %(message)s ")
 
 if __name__ == "__main__":
-    main()
+    main_multi()

@@ -11,18 +11,18 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-
-
 def create_engine_mysql():
     load_dotenv()
     username = os.environ.get("DB_username_local")
     password = os.environ.get("DB_password_local")
+    host = os.environ.get("DB_host")
+    port = os.environ.get("DB_port")
     db_name = os.environ.get("DB_name")
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@localhost:3306")
+    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{str(port)}")
 
     with engine.begin() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_name};"))
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@localhost:3306/{db_name}")
+    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{str(port)}/{db_name}")
     return engine
 
 def create_engine_db_rds():
@@ -36,7 +36,7 @@ def create_engine_db_rds():
 
     with engine.begin() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_name};"))
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db_name}")
+    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{str(port)}/{db_name}")
     return engine
 
 

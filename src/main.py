@@ -1,12 +1,17 @@
-from src.utility.open_driver import open_driver
+import re, time, logging, sys
+from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import StaleElementReferenceException
-import re, time
-import logging, sys
-from src.DataPipeLine import DataPipeLineCSV
+
 from config import material_list
+from src.DataPipeLine import DataPipeLineCSV, DataPipeLineToDB
+from src.models.schemas import create_table_company_deepsearch, create_table_company_master
+from src.utility.open_driver import open_driver
+from src.utility.db_engine_init import create_engine_mysql, create_session
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -87,29 +92,24 @@ class CompanyDARTCrawling:
         finally:
             self.company_datapipeline.close_pipeline()
 
-def card(idx_alphabet_elems=0, currpage=1) -> None:
+def card(datapipeline, idx_alphabet_min=0, idx_alphabet_max=26, currpage=1) -> None:
     # idx_alphabet_elems = 12
-    try:
-        url = "https://englishdart.fss.or.kr/dsbc001/main.do"
+    url = "https://englishdart.fss.or.kr/dsbc001/main.do"
+    driver = open_driver()
+    driver.get(url)
+    time.sleep(3)
 
-        company_datapipeline = DataPipeLineCSV(
-            csv_filename=f"Download/company.csv", 
-            storage_queue_limit=5)
-        
-        driver = open_driver()
-        driver.get(url)
-        time.sleep(3)
+    pattern_page = r"/(\d+)"
 
-        pattern_page = r"/(\d+)"
-
-        while True:
-            if idx_alphabet_elems > 26:
+    while True:
+        try:
+            if idx_alphabet_min > idx_alphabet_max:
                 break
 
-            func_call = f"searchIdx('{idx_alphabet_elems}'); return false;"
+            func_call = f"searchIdx('{idx_alphabet_min}'); return false;"
             driver.execute_script(func_call)
             time.sleep(1)
-            logger.info(f"Current alphabet element index: {idx_alphabet_elems}")
+            logger.info(f"Current alphabet element index: {idx_alphabet_min}")
             func_call_pagination = f"search1({currpage}); return false;" # Call to next page
             logger.info(f"Current page: {currpage}")
             driver.execute_script(func_call_pagination)
@@ -119,7 +119,7 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
             page_max_match = re.search(pattern=pattern_page, string=page_max_elem)
             if page_max_match:
                 page_max = int(page_max_match.group(1))
-            logger.info(f"Page max of letter {idx_alphabet_elems} : {page_max}")
+            logger.info(f"Page max of letter {idx_alphabet_min} : {page_max}")
             while True:
                 time.sleep(2)
                 company_elems = driver.find_elements(By.XPATH, "//table[@id='corpTable']/tbody/tr")
@@ -142,7 +142,7 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
 
                     url = company_name.find_element(By.XPATH, ".//a").get_attribute("href")
                     scraped_data["url_"] = url
-                    company_datapipeline.add_company(scraped_data)
+                    datapipeline.add_company(scraped_data)
                 # pagination controls
                 if currpage >= page_max:
                     currpage = 1
@@ -152,28 +152,90 @@ def card(idx_alphabet_elems=0, currpage=1) -> None:
                 func_call_pagination = f"search1({currpage}); return false;" # Call to next page
                 driver.execute_script(func_call_pagination)
                 time.sleep(3)
-            idx_alphabet_elems += 1
-    except Exception as e:
-        logger.info(f"Error : {e}")
-    finally:
-        company_datapipeline.close_pipeline()
+            idx_alphabet_min += 1
+        except Exception as e:
+            logger.info(f"Error : {e}")
+            driver.refresh()
+            time.sleep(15)
+
             
 def detail() -> None:
     ...
 
 
+def main_multi() -> None:
+    try:
+        ####################################################
+        # This is get arguments from user
+        save_type = "db"
+        if len(sys.argv) == 2:
+            save_type = sys.argv[1].lower()
+            print(save_type)
+        ####################################################
 
-def main() -> None:
-    idx_alphabet_elems = 0
-    currpage = 1
-    company_datapipeline = DataPipeLineCSV(
-            csv_filename=f"Download/company.csv", 
-            storage_queue_limit=5)
-    if len(sys.argv) >= 2:
-        idx_alphabet_elems = int(sys.argv[1])
-        print(idx_alphabet_elems)
-    if len(sys.argv) > 2:
-        currpage = int(sys.argv[2])
-        print(currpage)
-    card(idx_alphabet_elems, currpage)
-    # detail()
+        engine = create_engine_mysql()
+        _, metadata = create_session(engine)
+        create_table_company_master(engine, metadata)
+        create_table_company_deepsearch(engine, metadata)
+        
+        ####################################################
+        lock = Lock()
+        if save_type == "csv":
+            company_datapipeline = DataPipeLineCSV(
+                csv_filename=f"Download/company.csv", 
+                storage_queue_limit=5)
+        elif save_type == "db":
+            company_datapipeline = DataPipeLineToDB(
+                storage_queue_limit=10,
+                engine=engine,
+                lock=lock)
+        else:
+            return
+        # card(company_datapipeline, 0, 15)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            executor.submit(card, company_datapipeline, 0, 15)
+            executor.submit(card, company_datapipeline, 16, 26)
+        company_datapipeline.close_pipeline()
+    except Exception as e:
+        logger.info(f"CRITICAL > CHECK THIS {e}")
+    finally:
+        engine.dispose()
+   
+def main_single() -> None:
+    try:
+        ####################################################
+        # This is get arguments from user
+        idx_alphabet_elems = 0
+        currpage = 1
+        save_type = "db"
+        if len(sys.argv) >= 2:
+            idx_alphabet_elems = int(sys.argv[1])
+            print(idx_alphabet_elems)
+        if len(sys.argv) > 2:
+            currpage = int(sys.argv[2])
+            print(currpage)
+        if len(sys.argv) == 4:
+            save_type = sys.argv[3].lower()
+            print(save_type)
+        ####################################################
+        lock = Lock()
+        engine = create_engine_mysql()
+        if save_type == "csv":
+            company_datapipeline = DataPipeLineCSV(
+                csv_filename=f"Download/company.csv", 
+                storage_queue_limit=5)
+        elif save_type == "db":
+            company_datapipeline = DataPipeLineToDB(
+                storage_queue_limit=10,
+                engine=engine,
+                lock=lock)
+        else:
+            return
+
+        card(company_datapipeline, 0, 15)
+        
+    except Exception as e:
+        logger.info(f"CRITICAL > CHECK THIS {e}")
+    finally:
+        engine.dispose()
+        company_datapipeline.close_pipeline()
